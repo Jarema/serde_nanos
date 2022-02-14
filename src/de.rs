@@ -1,5 +1,5 @@
-use std::fmt;
 use std::marker::PhantomData;
+use std::{fmt, vec};
 
 #[cfg(feature = "chrono")]
 use chrono;
@@ -67,6 +67,39 @@ impl<'de> Deserialize<'de> for Option<std::time::Duration> {
         }
 
         deserializer.deserialize_option(OptionVisitor {
+            marker: PhantomData,
+        })
+    }
+}
+
+impl<'de> Deserialize<'de> for Vec<std::time::Duration> {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        struct VecVisitor {
+            marker: PhantomData<std::time::Duration>,
+        }
+
+        impl<'de> Visitor<'de> for VecVisitor {
+            type Value = Vec<std::time::Duration>;
+
+            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+                formatter.write_str("vec")
+            }
+
+            fn visit_seq<D>(self, mut deserializer: D) -> Result<Self::Value, D::Error>
+            where
+                D: serde::de::SeqAccess<'de>,
+            {
+                let mut values = vec::Vec::new();
+                while let Some(value) = deserializer.next_element()? {
+                    values.push(value)
+                }
+                Ok(values)
+            }
+        }
+        deserializer.deserialize_seq(VecVisitor {
             marker: PhantomData,
         })
     }
